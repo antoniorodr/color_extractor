@@ -1,21 +1,17 @@
-from flask import Flask, render_template, request, url_for
+from flask import Flask, render_template, request
 from flask_bootstrap import Bootstrap5
 import numpy as np
 from PIL import Image
 from collections import Counter
-import os
+import io
+import base64
 
 app = Flask(__name__)
 
 bootstrap = Bootstrap5(app)
 
-UPLOAD_FOLDER = "static/uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 @app.route("/", methods = ["POST", "GET"])
 def home():
-    if request.method == "POST":
-        pass
     return render_template("index.html")
 
 
@@ -40,16 +36,15 @@ def get_colors():
             for color, count in top_colors
         ]
 
-        image_path = os.path.join(UPLOAD_FOLDER, uploaded_file.filename)
-        image.save(image_path)
+        img_io = io.BytesIO()
+        image.save(img_io, format="PNG")
+        img_io.seek(0)
+        base64_img = base64.b64encode(img_io.getvalue()).decode("utf-8")
+        image_url = f"data:image/png;base64,{base64_img}"
 
-        return render_template(
-            "result.html",
-            color_data=color_data,
-            image_url=url_for("static", filename=f"uploads/{uploaded_file.filename}")
-        )
+        return render_template("result.html", color_data=color_data, image_url=image_url)
     except Exception as e:
-        return render_template("error.html", error = e)
+        return render_template("error.html", error=e)
 
 if __name__ == "__main__":
     app.run(debug = True)
